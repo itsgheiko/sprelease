@@ -4,13 +4,12 @@ class Constants {
   static const String refreshTokenSharedPrefs = "refreshToken";
   static const String profileImageUrl = "profileImageUrl";
   static const String isLoggedInSharedPrefs = "isLoggedIn";
+  static const String lastLoadedReleasesIdsSharedPrefs =
+      "lastLoadedReleasesIds";
 
-  // Hive
-  static const String releaseBox = "releaseBox";
-
-  static const String thisWeeksReleasesBox = "thisWeeksReleasesBox";
-  static const String lastWeeksReleasesBox = "lastWeeksReleasesBox";
-  static const String twoWeeksAgoReleasesBox = "twoWeeksAgoReleasesBox";
-  static const String threeWeeksAgoReleasesBox = "threeWeeksAgoReleasesBox";
-  static const String olderReleasesBox = "olderReleasesBox";
+  static const String thisWeeksReleases = "thisWeeksReleases";
+  static const String lastWeeksReleases = "lastWeeksReleases";
+  static const String twoWeeksAgoReleases = "twoWeeksAgoReleases";
+  static const String threeWeeksAgoReleases = "threeWeeksAgoReleases";
+  static const String olderReleases = "olderReleases";
 }

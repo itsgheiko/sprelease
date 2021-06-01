@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class SongsList extends StatefulWidget {
+class ReleaseList extends StatefulWidget {
   final List thisWeeksReleases;
   final List lastWeeksReleases;
   final List twoWeeksAgoReleases;
@@ -11,7 +11,7 @@ class SongsList extends StatefulWidget {
   final List olderReleases;
   final String errorMsg;
 
-  SongsList({
+  ReleaseList({
     this.errorMsg,
     this.thisWeeksReleases,
     this.lastWeeksReleases,
@@ -21,18 +21,19 @@ class SongsList extends StatefulWidget {
   });
 
   @override
-  _SongsListState createState() => _SongsListState();
+  _ReleaseListState createState() => _ReleaseListState();
 }
 
-class _SongsListState extends State<SongsList> {
-  Widget songWidget(
+class _ReleaseListState extends State<ReleaseList> {
+  Widget releaseWidget(
       {String name,
       String artists,
       String id,
       String type,
       DateTime date,
       String imageUrl,
-      String openUrl}) {
+      String openUrl,
+      bool isNew}) {
     var dateFormatterNoYear = DateFormat('EEEEEEEEE, d MMMM');
     //var dateFormatterYear = DateFormat('EEEEEEEEE, d MMMM yyyy');
     String formattedDate = "";
@@ -132,6 +133,15 @@ class _SongsListState extends State<SongsList> {
                             color: Colors.orange,
                           ),
                         ),
+                      if (isNew)
+                        Text(
+                          "New",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.yellow,
+                          ),
+                        ),
                     ],
                   ),
                 ],
@@ -160,19 +170,20 @@ class _SongsListState extends State<SongsList> {
       );
     }
 
-    Widget songList(List songList) {
+    Widget releaseList(List releaseList) {
       return Column(
         children: List.generate(
-          songList.length,
+          releaseList.length,
           (index) {
-            return songWidget(
-              name: songList[index]["name"],
-              artists: songList[index]["artists"],
-              id: songList[index]["id"],
-              type: songList[index]["type"],
-              date: songList[index]["date"],
-              imageUrl: songList[index]["imageUrl"],
-              openUrl: songList[index]["openUrl"],
+            return releaseWidget(
+              name: releaseList[index]["name"],
+              artists: releaseList[index]["artists"],
+              id: releaseList[index]["id"],
+              type: releaseList[index]["type"],
+              date: releaseList[index]["date"],
+              imageUrl: releaseList[index]["imageUrl"],
+              openUrl: releaseList[index]["openUrl"],
+              isNew: releaseList[index]["isNew"],
             );
           },
         ),
@@ -185,19 +196,19 @@ class _SongsListState extends State<SongsList> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (widget.thisWeeksReleases.isNotEmpty) dateTitle("This week"),
-                songList(widget.thisWeeksReleases),
+                releaseList(widget.thisWeeksReleases),
                 if (widget.lastWeeksReleases.isNotEmpty)
                   dateTitle("A week ago"),
-                songList(widget.lastWeeksReleases),
+                releaseList(widget.lastWeeksReleases),
                 if (widget.twoWeeksAgoReleases.isNotEmpty)
                   dateTitle("Two weeks ago"),
-                songList(widget.twoWeeksAgoReleases),
+                releaseList(widget.twoWeeksAgoReleases),
                 if (widget.threeWeeksAgoReleases.isNotEmpty)
                   dateTitle("Three weeks ago"),
-                songList(widget.threeWeeksAgoReleases),
+                releaseList(widget.threeWeeksAgoReleases),
                 if (widget.olderReleases.isNotEmpty)
                   dateTitle("Over a month ago"),
-                songList(widget.olderReleases),
+                releaseList(widget.olderReleases),
               ],
             ),
           )

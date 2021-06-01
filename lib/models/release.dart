@@ -8,6 +8,7 @@ class Release {
   final String artists;
   final String imageUrl;
   final String openUrl;
+  final bool isNew;
 
   Release(
       {@required this.id,
@@ -16,17 +17,19 @@ class Release {
       @required this.type,
       @required this.artists,
       @required this.imageUrl,
-      @required this.openUrl});
+      @required this.openUrl,
+      this.isNew = false});
 
   Map<String, dynamic> toMap() {
     final map = Map<String, dynamic>();
-    map['id'] = id;
-    map['date'] = date;
-    map['name'] = name;
-    map['type'] = type;
-    map['artists'] = artists;
-    map['imageUrl'] = imageUrl;
-    map['openUrl'] = openUrl;
+    map["id"] = id;
+    map["date"] = date;
+    map["name"] = name;
+    map["type"] = type;
+    map["artists"] = artists;
+    map["imageUrl"] = imageUrl;
+    map["openUrl"] = openUrl;
+    map["isNew"] = isNew;
     return map;
   }
 }

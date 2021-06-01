@@ -1,4 +1,4 @@
-# spreleasefaster
+# sprelease
 
 A new Flutter project.
 

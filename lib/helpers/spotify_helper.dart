@@ -3,16 +3,14 @@ import 'dart:convert';
 import 'package:flutter_web_auth/flutter_web_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:spreleasefaster/constants.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import '../constants.dart';
 
 // Models
 import '../models/release.dart';
 
 class SpotifyHelper {
   // To login to Spotify, get access token and access Spotify Web API
-
+  // TODO Hide clientId and clientSecret
   static const String clientId = "36852d7f53154f368cb244a83a431f83";
   static const String clientSecret = "5bb27098a72b478d9134ccf110d84c12";
   static const String redirectUrl = "com.example.sprelease://login-callback";
@@ -145,14 +143,15 @@ class SpotifyHelper {
     }
   }
 
-  Future<String> getNewReleases() async {
+  Future<Map> getNewReleases() async {
     List _thisWeeksReleases = [];
     List _lastWeeksReleases = [];
     List _twoWeeksAgoReleases = [];
     List _threeWeeksAgoReleases = [];
     List _olderReleases = [];
 
-    var _releaseBox = await Hive.openBox(Constants.releaseBox);
+    SharedPreferences _sharedPreferences =
+        await SharedPreferences.getInstance();
 
     Future getUserFollowedArtists() async {
       List _userFollowedArtists = [];
@@ -180,9 +179,7 @@ class SpotifyHelper {
           var map = Map<String, dynamic>.from(jsonDecode(_response.body));
           if (map.containsKey("error")) {
             if (map["error"]["status"] == 401) {
-              // Access token expired, generating new
-              await SpotifyHelper().generateAccessTokenWithRefreshToken();
-              await getUserFollowedArtists();
+              return "expired accesstoken";
             }
           } else {
             List artists = map["artists"]["items"];
@@ -368,14 +365,52 @@ class SpotifyHelper {
       await getAlbums();
     }
 
-    var _userFollowedArtists = await getUserFollowedArtists();
+    void detectNewReleases() async {
+      // Detects new releases
+      var _lastLoadedReleasesIdsFromSharedPrefs = _sharedPreferences
+          .getStringList(Constants.lastLoadedReleasesIdsSharedPrefs);
 
-    for (var i = 0; i < _userFollowedArtists.length; i++) {
-      await getLatestReleasesFromArtist(_userFollowedArtists[i]);
+      if (_lastLoadedReleasesIdsFromSharedPrefs != null) {
+        for (var i = 0; i < _lastLoadedReleasesIdsFromSharedPrefs.length; i++) {
+          if (_thisWeeksReleases.length >
+              _lastLoadedReleasesIdsFromSharedPrefs.length) {
+            // Releases detected
+            var _numberOfNewReleases = _thisWeeksReleases.length -
+                _lastLoadedReleasesIdsFromSharedPrefs.length;
+
+            for (var i = 0; i < _numberOfNewReleases; i++) {
+              _thisWeeksReleases[_thisWeeksReleases.length -
+                  _numberOfNewReleases]["isNew"] = true;
+            }
+          } else {
+            // No new releases
+          }
+        }
+      }
+
+      List<String> _lastLoadedReleasesIds = _thisWeeksReleases.map((release) {
+        return release["id"].toString();
+      }).toList();
+
+      await _sharedPreferences.setStringList(
+          Constants.lastLoadedReleasesIdsSharedPrefs, _lastLoadedReleasesIds);
     }
 
-    // Adding temporary lists to box
-    await _releaseBox.clear();
+    var _userFollowedArtists = await getUserFollowedArtists();
+    if (_userFollowedArtists == "expired accesstoken") {
+      print("Access token expired, generating new");
+      await SpotifyHelper().generateAccessTokenWithRefreshToken();
+    }
+    _userFollowedArtists = await getUserFollowedArtists();
+
+    List<Future> _futuresToBeCompleted = [];
+    for (var i = 0; i < _userFollowedArtists.length; i++) {
+      _futuresToBeCompleted
+          .add(getLatestReleasesFromArtist(_userFollowedArtists[i]));
+    }
+
+    // Waits for Futures for each artist to complete
+    await Future.wait(_futuresToBeCompleted);
 
     _thisWeeksReleases.sort((a, b) {
       return b["date"].compareTo(a["date"]);
@@ -397,14 +432,17 @@ class SpotifyHelper {
       return b["date"].compareTo(a["date"]);
     });
 
-    await _releaseBox.put(Constants.thisWeeksReleasesBox, _thisWeeksReleases);
-    await _releaseBox.put(Constants.lastWeeksReleasesBox, _lastWeeksReleases);
-    await _releaseBox.put(
-        Constants.twoWeeksAgoReleasesBox, _twoWeeksAgoReleases);
-    await _releaseBox.put(
-        Constants.threeWeeksAgoReleasesBox, _threeWeeksAgoReleases);
-    await _releaseBox.put(Constants.olderReleasesBox, _olderReleases);
+    detectNewReleases();
 
-    return "success";
+    Map _map = {
+      Constants.thisWeeksReleases: _thisWeeksReleases,
+      Constants.lastWeeksReleases: _lastWeeksReleases,
+      Constants.twoWeeksAgoReleases: _twoWeeksAgoReleases,
+      Constants.threeWeeksAgoReleases: _threeWeeksAgoReleases,
+      Constants.olderReleases: _olderReleases,
+    };
+    return _map;
   }
+
+  Future checkForNewReleases() async {}
 }
