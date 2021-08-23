@@ -8,8 +8,9 @@ import './releases_screen.dart';
 // Widgets
 import '../widgets/log_in_button.dart';
 
-// Constants
+// Constants and theme
 import '../constants.dart';
+import 'package:sprelease/app_theme.dart';
 
 // Helpers
 import '../helpers/spotify_helper.dart';
@@ -33,7 +34,7 @@ class _LogInScreenState extends State<LogInScreen> {
 
   void _showErrorSnackBar() {
     final snackBar = SnackBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.snackbarBackgroundColor,
       content: Text(
         "Something went wrong.",
         style: TextStyle(
@@ -46,7 +47,6 @@ class _LogInScreenState extends State<LogInScreen> {
   }
 
   void _logIn() async {
-    print("motherfucker");
     _loading = true;
     var loggingIn = await SpotifyHelper().logIn();
     if (loggingIn == "success") {
@@ -68,6 +68,7 @@ class _LogInScreenState extends State<LogInScreen> {
         body: Center(
           child: Container(
             width: double.infinity,
+            color: AppTheme.containerBackgroundColor,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

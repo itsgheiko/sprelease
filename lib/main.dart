@@ -1,32 +1,26 @@
 // Packages
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
+import 'dart:io' show Platform;
 
 // Screens
 import './screens/releases_screen.dart';
 import './screens/log_in_screen.dart';
 
-// Constants
+// Constants and theme
 import './constants.dart';
+import 'package:sprelease/app_theme.dart';
 
-// Helpers
-import 'package:sprelease/helpers/notification_helper.dart';
+// Providers
+import 'package:sprelease/providers/preview_player_provider.dart';
 
 void main() async {
   await Hive.initFlutter();
-  await NotificationHelper().initializeNotifications();
   runApp(MainScreen());
-
-  await AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
-    if (!isAllowed) {
-      // Insert here your friendly dialog box before call the request method
-      // This is very important to not harm the user experience
-      AwesomeNotifications().requestPermissionToSendNotifications();
-    }
-  });
 }
 
 class MainScreen extends StatefulWidget {
@@ -37,28 +31,27 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   // Automatically assumes user is logged in
 
-  Future<bool> _isUserIsLoggedIn() async {
-    SharedPreferences _sharedPreferences =
-        await SharedPreferences.getInstance();
-
-    if (_sharedPreferences.containsKey(Constants.isLoggedInSharedPrefs)) {
-      if (_sharedPreferences.getBool(Constants.isLoggedInSharedPrefs)) {
-        return true;
-      } else {
-        return false;
-      }
-    } else
-      return false;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    Future<bool> _isUserIsLoggedIn() async {
+      SharedPreferences _sharedPreferences = await SharedPreferences.getInstance();
+
+      if (_sharedPreferences.containsKey(Constants.isLoggedInSharedPrefs)) {
+        if (_sharedPreferences.getBool(Constants.isLoggedInSharedPrefs)) {
+          return true;
+        } else {
+          return false;
+        }
+      } else
+        return false;
+    }
+
+    Widget _child = MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        accentColor: Color(0xFF1DB954),
-        canvasColor: Colors.transparent,
-      ),
+          // Main
+          accentColor: AppTheme.accentColor,
+          scaffoldBackgroundColor: AppTheme.backgroundColor),
       home: FutureBuilder(
         future: _isUserIsLoggedIn(),
         builder: (context, snapshot) {
@@ -70,6 +63,13 @@ class _MainScreenState extends State<MainScreen> {
           );
         },
       ),
+    );
+
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => PreviewPlayerProvider()),
+      ],
+      child: _child,
     );
   }
 }

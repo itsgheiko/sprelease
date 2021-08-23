@@ -1,39 +1,53 @@
 // Packages
+import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive/hive.dart';
 
-// Constants
+// Constants and theme
 import 'package:sprelease/constants.dart';
-import 'package:sprelease/helpers/spotify_helper.dart';
+import 'package:sprelease/app_theme.dart';
 
 // Widgets
-import '../widgets/release_list.dart';
+import '../widgets/release_list_widgets/release_list.dart';
+
+// Helpers
+import 'package:sprelease/helpers/spotify_helper.dart';
+import '../helpers/navigator_helper.dart';
 
 // Screens
 import '../main.dart';
+import 'package:sprelease/screens/preferences_screen.dart';
+
+// Providers
+import 'package:sprelease/providers/preview_player_provider.dart';
+
+// Models
+import 'package:sprelease/models/release.dart';
 
 class ReleasesScreen extends StatefulWidget {
   @override
   _ReleasesScreenState createState() => _ReleasesScreenState();
 }
 
-class _ReleasesScreenState extends State<ReleasesScreen> {
+class _ReleasesScreenState extends State<ReleasesScreen> with WidgetsBindingObserver {
+  // Instantiate preview player
+  AssetsAudioPlayer _player = AssetsAudioPlayer();
+
   // Loads songs - called when widget loads
-  Future<Map> _loadContent() async {
+  Future<Map<String, List<Release>>> _loadContent() async {
     return await SpotifyHelper().getNewReleases();
   }
 
   Future<String> _getUserProfileImageUri() async {
-    SharedPreferences _sharedPreferences =
-        await SharedPreferences.getInstance();
+    SharedPreferences _sharedPreferences = await SharedPreferences.getInstance();
 
     return _sharedPreferences.getString(Constants.profileImageUrl);
   }
 
   Future _signOut() async {
-    SharedPreferences _sharedPreferences =
-        await SharedPreferences.getInstance();
+    SharedPreferences _sharedPreferences = await SharedPreferences.getInstance();
 
     await _sharedPreferences.clear();
 
@@ -69,21 +83,25 @@ class _ReleasesScreenState extends State<ReleasesScreen> {
 
   AppBar _appBar() {
     return AppBar(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppTheme.backgroundColor,
       actions: [
         FutureBuilder<String>(
           future: _getUserProfileImageUri(),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done &&
-                snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
               return Container(
                 margin: EdgeInsets.fromLTRB(0, 5, 5, 5),
                 child: GestureDetector(
                   onTap: () {
-                    _showPopupMenu();
+                    NavigatorHelper().pushToScreen(
+                      context,
+                      PreferencesScreen(),
+                    );
                   },
                   child: Image.network(
                     snapshot.data,
+                    height: 50,
+                    width: 50,
                   ),
                 ),
               );
@@ -99,11 +117,10 @@ class _ReleasesScreenState extends State<ReleasesScreen> {
   }
 
   Widget _body() {
-    return FutureBuilder<Map>(
+    return FutureBuilder<Map<String, List<Release>>>(
       future: _loadContent(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done &&
-            snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
           return _songListWidget(snapshot);
         }
         return _progressIndicator();
@@ -111,53 +128,37 @@ class _ReleasesScreenState extends State<ReleasesScreen> {
     );
   }
 
-  void _showPopupMenu() async {
-    await showMenu(
-      elevation: 0,
-      color: Colors.transparent,
-      context: context,
-      position: RelativeRect.fromLTRB(
-          double.infinity, AppBar().preferredSize.height, 0, 0),
-      items: [
-        PopupMenuItem(
-          child: Container(
-            padding: EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color: Color(0xFF121212),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => _signOut(),
-                  child: Container(
-                    width: double.infinity,
-                    alignment: Alignment.center,
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).accentColor,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      "Sign out",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
+    _player.dispose();
+    Provider.of<PreviewPlayerProvider>(context, listen: false).endPlayerSession();
+
+    super.dispose();
+  }
+
+  // Handles closing app
+  @override
+  didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (AppLifecycleState.paused == state) {
+      await Provider.of<PreviewPlayerProvider>(context, listen: false).stopCurrentPreview();
+    } else if (AppLifecycleState.resumed == state) {
+      await Provider.of<PreviewPlayerProvider>(context, listen: false).stopCurrentPreview();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Save instance of player
+    Provider.of<PreviewPlayerProvider>(context, listen: false).setPlayerInstance(_player);
+
     return SafeArea(
       child: Scaffold(
         backgroundColor: Colors.black,

@@ -34,6 +34,14 @@ android {
         targetSdkVersion 30
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+
+        // Over 65K ... added by author
+        multiDexEnabled true
+    }
+
+    // Dependecies added by author
+    dependencies {
+        implementation 'androidx.multidex:multidex:2.0.1'
     }
 
     buildTypes {
